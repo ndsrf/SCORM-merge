@@ -7,13 +7,16 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Copy package files for the client
-COPY client/package.json client/package-lock.json ./
+COPY client/package.json ./package.json
+COPY client/package-lock.json ./package-lock.json
 
 # Install dependencies
 RUN npm install && npm cache clean --force
 
 # Copy client source code
-COPY client/ ./
+COPY client/src ./src
+COPY client/public ./public
+COPY client/tsconfig.json ./tsconfig.json
 
 # Build the React app
 RUN npm run build
