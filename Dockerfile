@@ -32,7 +32,6 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copy backend source
 COPY server/ ./server/
-COPY tests/ ./tests/
 
 # Copy built frontend from previous stage
 COPY --from=frontend-build /app/client/build ./client/build
