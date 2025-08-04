@@ -1,0 +1,32 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded by docker-compose and overrides base configuration
+
+version: '3.8'
+
+services:
+  backend:
+    # Mount source code for development
+    volumes:
+      - ./server:/app/server
+      - ./package.json:/app/package.json
+      - backend_uploads:/app/uploads
+      - backend_temp:/app/temp
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+    # Enable debugger
+    command: ["node", "--inspect=0.0.0.0:9229", "server/index.js"]
+    ports:
+      - "5000:5000"
+      - "9229:9229"  # Debug port
+    
+  frontend:
+    # For development, you might want to run the React dev server instead
+    # Uncomment and modify as needed:
+    # build:
+    #   context: ./client
+    #   dockerfile: ../Dockerfile.dev  # Create a dev Dockerfile if needed
+    # volumes:
+    #   - ./client/src:/app/src
+    # ports:
+    #   - "3000:3000"

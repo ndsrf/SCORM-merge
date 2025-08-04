@@ -1,0 +1,34 @@
+# Simple single-container deployment
+# Use with: docker-compose -f docker-compose.simple.yml up
+
+version: '3.8'
+
+services:
+  scorm-merger:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scorm-merger-app
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+    volumes:
+      # Persistent storage for uploaded and temporary files
+      - app_uploads:/app/uploads
+      - app_temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const options = { hostname: 'localhost', port: 5000, path: '/health', timeout: 2000 }; const req = http.request(options, (res) => { res.statusCode === 200 ? process.exit(0) : process.exit(1); }); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# Named volumes for data persistence
+volumes:
+  app_uploads:
+    driver: local
+  app_temp:
+    driver: local

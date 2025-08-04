@@ -1,0 +1,29 @@
+# Production docker-compose configuration
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  backend:
+    restart: always
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+  frontend:
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Add SSL/TLS configuration if needed
+    # ports:
+    #   - "443:443"
+    # volumes:
+    #   - ./ssl:/etc/nginx/ssl:ro
+    #   - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro

@@ -1,0 +1,90 @@
+# Ignore files and directories that shouldn't be included in Docker build context
+
+# Node modules (will be installed during build)
+node_modules/
+client/node_modules/
+
+# Build outputs
+client/build/
+dist/
+
+# Development files
+.git/
+.gitignore
+README.md
+*.md
+
+# Test files
+tests/
+client/src/**/*.test.*
+client/src/**/*.spec.*
+coverage/
+.nyc_output/
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temporary directories
+temp/
+uploads/
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files themselves (to avoid recursive copying)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Playwright browsers and test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

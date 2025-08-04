@@ -1,0 +1,50 @@
+{
+  "name": "scorm-merge",
+  "version": "1.0.0",
+  "description": "Web application to merge multiple SCORM packages into one",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "nodemon server/index.js",
+    "client:dev": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js",
+    "install:all": "npm install && cd client && npm install",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:client": "cd client && npm test -- --watchAll=false",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm test && npm run test:client && npm run test:e2e",
+    "install:playwright": "npx playwright install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --rmi all",
+    "docker:dev": "docker-compose up --build",
+    "docker:simple": "docker-compose -f docker-compose.simple.yml up --build",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d"
+  },
+  "keywords": ["scorm", "elearning", "package", "merge"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "jszip": "^3.10.1",
+    "xml2js": "^0.6.2",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.8",
+    "ts-jest": "^29.1.1"
+  }
+}
