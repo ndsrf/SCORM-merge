@@ -16,7 +16,7 @@ This document explains how to run the SCORM Package Merger application using Doc
 1. **Clone and navigate to the project:**
    ```bash
    git clone <repository-url>
-   cd scrum-merge
+   cd SCORM-merge
    ```
 
 2. **Build and start all services:**
@@ -42,19 +42,19 @@ This document explains how to run the SCORM Package Merger application using Doc
 
 1. **Build backend container:**
    ```bash
-   docker build -f Dockerfile.backend -t scorm-merger-backend .
+   docker build -f Dockerfile.backend -t SCORM-merger-backend .
    ```
 
 2. **Build frontend container:**
    ```bash
-   docker build -f Dockerfile.frontend -t scorm-merger-frontend .
+   docker build -f Dockerfile.frontend -t SCORM-merger-frontend .
    ```
 
 3. **Run with custom network:**
    ```bash
-   docker network create scorm-network
-   docker run -d --name backend --network scorm-network -p 5000:5000 scorm-merger-backend
-   docker run -d --name frontend --network scorm-network -p 80:80 scorm-merger-frontend
+   docker network create SCORM-network
+   docker run -d --name backend --network SCORM-network -p 5000:5000 SCORM-merger-backend
+   docker run -d --name frontend --network SCORM-network -p 80:80 SCORM-merger-frontend
    ```
 
 ## Available Docker Commands
@@ -74,7 +74,7 @@ The following npm scripts are available for Docker operations:
 
 The Docker setup consists of two main services:
 
-### Backend Service (`scorm-merger-backend`)
+### Backend Service (`SCORM-merger-backend`)
 - **Base Image:** `node:18-alpine`
 - **Port:** 5000
 - **Health Check:** `http://localhost:5000/health`
@@ -82,7 +82,7 @@ The Docker setup consists of two main services:
   - `backend_uploads:/app/uploads` (persistent file uploads)
   - `backend_temp:/app/temp` (temporary processing files)
 
-### Frontend Service (`scorm-merger-frontend`)
+### Frontend Service (`SCORM-merger-frontend`)
 - **Base Image:** `nginx:alpine`
 - **Port:** 80
 - **Health Check:** `http://localhost/health`
@@ -111,7 +111,7 @@ The following environment variables can be customized:
 
 ### Network Configuration
 
-- **Custom Network:** `scorm-network` (bridge)
+- **Custom Network:** `SCORM-network` (bridge)
 - **Service Discovery:** Backend accessible via `backend:5000` from frontend
 - **External Access:** Frontend on port 80, Backend API on port 5000
 

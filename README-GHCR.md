@@ -6,9 +6,9 @@ This project automatically builds and publishes Docker images to GitHub Containe
 
 Three different images are built and published:
 
-1. **Full Application** (`scrum-merge-full`): Contains both frontend and backend in a single container
-2. **Frontend Only** (`scrum-merge-frontend`): Nginx serving the React frontend
-3. **Backend Only** (`scrum-merge-backend`): Node.js backend API
+1. **Full Application** (`SCORM-merge-full`): Contains both frontend and backend in a single container
+2. **Frontend Only** (`SCORM-merge-frontend`): Nginx serving the React frontend
+3. **Backend Only** (`SCORM-merge-backend`): Node.js backend API
 
 ## Image Tags
 
@@ -37,28 +37,28 @@ docker-compose -f docker-compose.ghcr.yml up -d
 #### Full Application (Frontend + Backend)
 ```bash
 docker run -d \
-  --name scrum-merge \
+  --name SCORM-merge \
   -p 5000:5000 \
   -v $(pwd)/uploads:/app/uploads \
   -v $(pwd)/temp:/app/temp \
-  ghcr.io/ndsrf/scrum-merge/scrum-merge-full:main
+  ghcr.io/ndsrf/SCORM-merge/SCORM-merge-full:main
 ```
 
 #### Separate Frontend and Backend
 ```bash
 # Backend
 docker run -d \
-  --name scrum-backend \
+  --name SCORM-backend \
   -p 5000:5000 \
   -v $(pwd)/uploads:/app/uploads \
   -v $(pwd)/temp:/app/temp \
-  ghcr.io/ndsrf/scrum-merge/scrum-merge-backend:main
+  ghcr.io/ndsrf/SCORM-merge/SCORM-merge-backend:main
 
 # Frontend  
 docker run -d \
-  --name scrum-frontend \
+  --name SCORM-frontend \
   -p 3000:80 \
-  ghcr.io/ndsrf/scrum-merge/scrum-merge-frontend:main
+  ghcr.io/ndsrf/SCORM-merge/SCORM-merge-frontend:main
 ```
 
 ## Authentication
@@ -80,9 +80,9 @@ For production, pin to specific version tags:
 ```yaml
 services:
   backend:
-    image: ghcr.io/ndsrf/scrum-merge/scrum-merge-backend:v1.0.0
+    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-backend:v1.0.0
   frontend:
-    image: ghcr.io/ndsrf/scrum-merge/scrum-merge-frontend:v1.0.0
+    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-frontend:v1.0.0
 ```
 
 ## Security Scanning

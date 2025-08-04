@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   frontend:
-    image: ghcr.io/ndsrf/scrum-merge/scrum-merge-frontend:main
+    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-frontend:main
     ports:
       - "3000:80"
     depends_on:
       - backend
     networks:
-      - scrum-network
+      - SCORM-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
@@ -17,14 +17,14 @@ services:
       retries: 3
 
   backend:
-    image: ghcr.io/ndsrf/scrum-merge/scrum-merge-backend:main
+    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-backend:main
     ports:
       - "5000:5000"
     volumes:
       - ./uploads:/app/uploads
       - ./temp:/app/temp
     networks:
-      - scrum-network
+      - SCORM-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "const http = require('http'); const options = { hostname: 'localhost', port: 5000, path: '/health', timeout: 2000 }; const req = http.request(options, (res) => { res.statusCode === 200 ? process.exit(0) : process.exit(1); }); req.on('error', () => process.exit(1)); req.end();"]
@@ -34,7 +34,7 @@ services:
 
   # Alternative: Use the full combined image
   # full-app:
-  #   image: ghcr.io/ndsrf/scrum-merge/scrum-merge-full:main
+  #   image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-full:main
   #   ports:
   #     - "5000:5000"
   #   volumes:
@@ -45,7 +45,7 @@ services:
   #   restart: unless-stopped
 
 networks:
-  scrum-network:
+  SCORM-network:
     driver: bridge
 
 volumes:

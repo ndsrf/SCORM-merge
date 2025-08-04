@@ -22,13 +22,13 @@ jobs:
       matrix:
         include:
           - dockerfile: Dockerfile
-            image: scrum-merge-full
+            image: SCORM-merge-full
             context: .
           - dockerfile: Dockerfile.frontend
-            image: scrum-merge-frontend
+            image: SCORM-merge-frontend
             context: .
           - dockerfile: Dockerfile.backend
-            image: scrum-merge-backend
+            image: SCORM-merge-backend
             context: .
 
     steps:
@@ -81,7 +81,7 @@ jobs:
 
     strategy:
       matrix:
-        image: [scrum-merge-full, scrum-merge-frontend, scrum-merge-backend]
+        image: [SCORM-merge-full, SCORM-merge-frontend, SCORM-merge-backend]
 
     steps:
     - name: Run Trivy vulnerability scanner
