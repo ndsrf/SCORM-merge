@@ -15,7 +15,6 @@ RUN npm ci --only=production
 
 # Copy server source code
 COPY server/ ./server/
-COPY tests/ ./tests/
 
 # Create uploads and temp directories with proper permissions
 RUN chmod 755 temp uploads
