@@ -8,7 +8,7 @@ WORKDIR /app/client
 
 # Copy and install client dependencies
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install && npm cache clean --force
 
 # Copy client source and build
 COPY client/ ./
@@ -28,7 +28,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copy package files and install backend dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Copy backend source
 COPY server/ ./server/
