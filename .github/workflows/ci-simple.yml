@@ -18,7 +18,9 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Build frontend Docker image
-      run: docker build -f Dockerfile.frontend -t scorm-merge-frontend .
+      run: |
+        cd client
+        docker build -t scorm-merge-frontend .
 
     - name: Build backend Docker image
       run: docker build -f Dockerfile.backend -t scorm-merge-backend .

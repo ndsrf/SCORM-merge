@@ -24,9 +24,9 @@ jobs:
           - dockerfile: Dockerfile
             image: SCORM-merge-full
             context: .
-          - dockerfile: Dockerfile.frontend
+          - dockerfile: Dockerfile
             image: SCORM-merge-frontend
-            context: .
+            context: ./client
           - dockerfile: Dockerfile.backend
             image: SCORM-merge-backend
             context: .
