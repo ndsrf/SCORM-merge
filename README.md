@@ -31,6 +31,11 @@ A powerful web application that allows you to merge multiple SCORM packages into
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Docker Ready** - Multiple deployment options
 
+## Screenshot
+
+<img width="1222" height="860" alt="image" src="https://github.com/user-attachments/assets/e7320136-a3c1-4d4f-93b2-ddf5fb3443e7" />
+
+
 ## 🏃‍♂️ Quick Start
 
 ### Option 1: Docker (Recommended)
