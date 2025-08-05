@@ -37,8 +37,8 @@ A powerful web application that allows you to merge multiple SCORM packages into
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/scorm-package-merger.git
-cd scorm-package-merger
+git clone https://github.com/ndsrf/scorm-merge.git
+cd scorm-merge
 
 # Start with Docker (interactive setup)
 ./start-docker.sh
@@ -54,8 +54,8 @@ Access the application at `http://localhost` (or `http://localhost:5000` for sim
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/YOUR_USERNAME/scorm-package-merger.git
-cd scorm-package-merger
+git clone https://github.com/ndsrf/scorm-merge.git
+cd scorm-merge
 npm run install:all
 
 # Start development servers
@@ -102,7 +102,7 @@ The merged SCORM package includes:
 
 ### Project Structure
 ```
-scorm-package-merger/
+scorm-merge/
 ├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/     # React components
@@ -150,8 +150,8 @@ npm run docker:prod     # Production deployment
 
 1. **Clone and install:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/scorm-package-merger.git
-   cd scorm-package-merger
+   git clone https://github.com/ndsrf/scorm-merge.git
+   cd scorm-merge
    npm run install:all
    ```
 
@@ -246,8 +246,8 @@ npm run test:e2e   # E2E only
 ### Using Docker (Recommended)
 ```bash
 # Clone and deploy
-git clone https://github.com/YOUR_USERNAME/scorm-package-merger.git
-cd scorm-package-merger
+git clone https://github.com/ndsrf/scorm-merge.git
+cd scorm-merge
 npm run docker:prod
 ```
 
@@ -320,7 +320,7 @@ npm run test:client
 ```
 
 ### Getting Help
-- Check the [Issues](https://github.com/YOUR_USERNAME/scorm-package-merger/issues) page
+- Check the [Issues](https://github.com/YOUR_USERNAME/scorm-merge/issues) page
 - Review [README-Docker.md](README-Docker.md) for Docker-specific help
 - Create a new issue with detailed information
 

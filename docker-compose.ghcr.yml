@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-frontend:main
+    image: ghcr.io/ndsrf/scorm-merge/scorm-merge-frontend:main
     ports:
       - "3000:80"
     depends_on:
@@ -17,7 +17,7 @@ services:
       retries: 3
 
   backend:
-    image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-backend:main
+    image: ghcr.io/ndsrf/scorm-merge/scorm-merge-backend:main
     ports:
       - "5000:5000"
     volumes:
@@ -34,14 +34,14 @@ services:
 
   # Alternative: Use the full combined image
   # full-app:
-  #   image: ghcr.io/ndsrf/SCORM-merge/SCORM-merge-full:main
+  #   image: ghcr.io/ndsrf/scorm-merge/scorm-merge-full:main
   #   ports:
   #     - "5000:5000"
   #   volumes:
   #     - ./uploads:/app/uploads
   #     - ./temp:/app/temp
   #   networks:
-  #     - scrum-network
+  #     - scorm-network
   #   restart: unless-stopped
 
 networks:

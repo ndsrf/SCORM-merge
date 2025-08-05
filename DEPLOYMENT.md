@@ -15,7 +15,7 @@ This guide provides instructions for deploying the SCORM Merge application on a 
 
 1. **Download the deployment configuration:**
    ```bash
-   wget https://raw.githubusercontent.com/ndsrf/SCORM-merge/main/docker-compose.deploy.yml
+   wget https://raw.githubusercontent.com/ndsrf/scorm-merge/main/docker-compose.deploy.yml
    ```
    
    Or create `docker-compose.deploy.yml` with the following content:
