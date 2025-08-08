@@ -26,7 +26,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsHost = process.env.NODE_ENV === 'development' ? 'localhost:5000' : window.location.host;
-    const wsUrl = `${wsProtocol}://${wsHost}`;
+    const wsPath = process.env.NODE_ENV === 'development' ? '' : '/ws';
+    const wsUrl = `${wsProtocol}://${wsHost}${wsPath}`;
     
     console.log('Connecting to WebSocket:', wsUrl);
     const websocket = new WebSocket(wsUrl);

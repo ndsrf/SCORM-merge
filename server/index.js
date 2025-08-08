@@ -186,7 +186,7 @@ app.post('/api/merge', async (req, res) => {
     const mergedPackagePath = await scormProcessor.mergePackages(
       validPackages,
       (progress) => {
-        if (session.ws.readyState === WebSocket.OPEN) {
+        if (session.ws && session.ws.readyState === WebSocket.OPEN) {
           session.ws.send(JSON.stringify({ 
             type: 'progress', 
             progress 
