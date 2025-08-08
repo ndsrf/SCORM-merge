@@ -9,7 +9,7 @@ const scormProcessor = require('./scormProcessor');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, path: '/ws' });
 
 const PORT = process.env.PORT || 5000;
 
