@@ -44,6 +44,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push frontend Docker image
       uses: docker/build-push-action@v5
@@ -89,6 +90,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push backend Docker image
       uses: docker/build-push-action@v5
@@ -134,6 +136,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push full Docker image
       uses: docker/build-push-action@v5
