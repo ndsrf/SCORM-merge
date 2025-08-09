@@ -34,9 +34,7 @@ const App: React.FC = () => {
     
     let connectionTimeout = setTimeout(() => {
       console.warn('WebSocket connection timeout, creating fallback session');
-      if (!sessionId) {
-        setSessionId(`fallback-${Date.now()}`);
-      }
+      setSessionId(`fallback-${Date.now()}`);
     }, 5000);
     
     websocket.onopen = () => {
@@ -59,15 +57,13 @@ const App: React.FC = () => {
     
     websocket.onclose = (event) => {
       console.log('WebSocket disconnected', event.code, event.reason);
-      if (!sessionId) {
-        console.warn('Creating fallback session after WebSocket close');
-        setSessionId(`fallback-${Date.now()}`);
-      }
+      // Don't create fallback session here - let it reconnect
     };
     
     websocket.onerror = (error) => {
       console.error('WebSocket error:', error);
       clearTimeout(connectionTimeout);
+      // Create fallback session only if we don't have one
       if (!sessionId) {
         console.warn('Creating fallback session after WebSocket error');
         setSessionId(`fallback-${Date.now()}`);
@@ -80,7 +76,7 @@ const App: React.FC = () => {
         websocket.close();
       }
     };
-  }, [sessionId]);
+  }, []); // Remove sessionId from dependency array to prevent infinite loop
 
   const handleUploadComplete = (uploadedPackages: ScormPackage[]) => {
     setPackages(uploadedPackages);

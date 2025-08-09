@@ -168,8 +168,19 @@ app.post('/api/reorder', (req, res) => {
 
 app.post('/api/merge', async (req, res) => {
   try {
+    console.log('Merge request received');
+    console.log('Request body:', req.body);
+    
     const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      console.error('No session ID provided in merge request');
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+    
     let session = sessions.get(sessionId);
+    console.log('Session found:', !!session);
+    console.log('Session data:', session ? { packagesCount: session.packages?.length, hasWs: !!session.ws } : 'null');
     
     if (!session) {
       console.log('Session not found for merge, creating new session for:', sessionId);
@@ -177,9 +188,19 @@ app.post('/api/merge', async (req, res) => {
       sessions.set(sessionId, session);
     }
 
+    console.log('Total packages in session:', session.packages?.length || 0);
+    console.log('Package details:', session.packages?.map(pkg => ({ 
+      id: pkg.id, 
+      filename: pkg.filename, 
+      hasError: !!pkg.error,
+      error: pkg.error 
+    })));
+
     const validPackages = session.packages.filter(pkg => !pkg.error);
+    console.log('Valid packages count:', validPackages.length);
     
     if (validPackages.length === 0) {
+      console.error('No valid packages to merge. Total packages:', session.packages?.length || 0);
       return res.status(400).json({ error: 'No valid SCORM packages to merge' });
     }
 
@@ -195,8 +216,10 @@ app.post('/api/merge', async (req, res) => {
       }
     );
 
+    console.log('Merge completed successfully, download URL created');
     res.json({ downloadUrl: `/api/download/${path.basename(mergedPackagePath)}` });
   } catch (error) {
+    console.error('Merge process error:', error);
     res.status(500).json({ error: error.message });
   }
 });
