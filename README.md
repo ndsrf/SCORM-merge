@@ -16,6 +16,8 @@ A powerful web application that allows you to merge multiple SCORM packages into
 - **Package Reordering** - Sort merged packages in your preferred order
 - **Progress Tracking** - Real-time progress updates during merge operations
 - **Course Menu System** - Automatically creates a navigation menu for the merged package
+- **AI-Powered Descriptions** - Generate intelligent course descriptions using OpenAI
+- **Smart Finish Navigation** - Finish links in individual courses return to main menu
 
 ### 📦 SCORM Support
 - **SCORM 2004 3rd Edition** compatible
@@ -30,6 +32,9 @@ A powerful web application that allows you to merge multiple SCORM packages into
 - **Real-time Updates** - WebSocket-powered progress tracking
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Docker Ready** - Multiple deployment options
+- **OpenAI Integration** - Configurable AI-powered content analysis
+- **Content Extraction** - Intelligent parsing of course content for descriptions
+- **Comprehensive Testing** - 52+ automated tests ensuring reliability
 
 ## Screenshot
 
@@ -69,6 +74,40 @@ npm run dev
 
 Access the application at `http://localhost:3000`
 
+## 🤖 OpenAI Integration (Optional)
+
+The application can generate intelligent course descriptions using OpenAI. This is completely optional - the system works perfectly without it using smart fallback descriptions.
+
+### Setup OpenAI (Optional)
+1. **Get an API key** from [OpenAI Platform](https://platform.openai.com/)
+2. **Configure the key:**
+   ```bash
+   # Environment variable (recommended)
+   export OPENAI_API_KEY="sk-your-key-here"
+   
+   # Or in Docker
+   docker run -e OPENAI_API_KEY="sk-your-key-here" ...
+   ```
+3. **Restart the application** - OpenAI integration will be automatically enabled
+
+### Features
+- **Intelligent Descriptions** - AI analyzes course content to generate specific, engaging descriptions
+- **Content Analysis** - Extracts meaningful information from SCORM package HTML files
+- **Smart Fallbacks** - 10+ subject-specific fallback descriptions when AI is unavailable
+- **Cost Effective** - ~$0.0001-0.0002 per package with gpt-4o-mini
+
+### Configuration
+Edit `config/default.json` to customize:
+```json
+{
+  "openai": {
+    "model": "gpt-4o-mini",
+    "maxTokens": 150,
+    "enabled": true
+  }
+}
+```
+
 ## 📋 Requirements
 
 - **Node.js** 18+ 
@@ -98,10 +137,12 @@ Access the application at `http://localhost:3000`
 
 ### Using the Merged Package
 The merged SCORM package includes:
-- **Course Menu** - Main navigation interface
+- **Course Menu** - Main navigation interface with course descriptions
 - **Individual Modules** - Each original package as a separate section
 - **SCORM API Integration** - Full LMS compatibility
 - **Progress Tracking** - Proper completion status handling
+- **Smart Navigation** - Finish links in individual courses automatically return to main menu
+- **Seamless Experience** - No broken links or navigation issues
 
 ## 🛠️ Development
 
@@ -115,8 +156,13 @@ scorm-merge/
 │   └── package.json
 ├── server/                 # Node.js backend
 │   ├── index.js           # Express server
-│   └── scormProcessor.js  # SCORM processing logic
-├── tests/                  # Backend tests
+│   ├── scormProcessor.js  # SCORM processing logic
+│   ├── openaiService.js   # OpenAI integration
+│   └── config.js          # Configuration loader
+├── config/                 # Configuration files
+│   ├── default.json       # Default configuration
+│   └── README.md          # Configuration documentation
+├── tests/                  # Backend tests (52+ tests)
 ├── e2e/                   # End-to-end tests
 ├── docker-compose.yml     # Docker configuration
 └── package.json          # Main package file
@@ -240,6 +286,9 @@ npm run test:e2e   # E2E only
 |----------|---------|-------------|
 | `NODE_ENV` | `development` | Runtime environment |
 | `PORT` | `5000` | Backend server port |
+| `OPENAI_API_KEY` | `""` | OpenAI API key for course descriptions |
+| `OPENAI_ENABLED` | `auto` | Enable/disable OpenAI (auto-enabled with API key) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model to use |
 
 ### File Storage
 - **Uploads:** `./uploads/` (temporary storage)
@@ -342,13 +391,21 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 ## 📈 Roadmap
 
-- [ ] **SCORM 1.3/2004 4th Edition** support
+### ✅ Recently Completed
+- [x] **AI-Powered Descriptions** - OpenAI integration for intelligent course descriptions
+- [x] **Smart Finish Navigation** - Automatic return to menu from individual courses
+- [x] **Enhanced Testing** - Comprehensive test suite with 52+ automated tests
+- [x] **Configuration System** - Flexible configuration with environment variable support
+
+### 🚀 Upcoming Features
+- [ ] **SCORM 1.3/2004 4th Edition** enhanced support
 - [ ] **Batch Processing** for multiple merge operations
 - [ ] **Cloud Storage** integration (AWS S3, Google Drive)
 - [ ] **API Keys** for programmatic access
 - [ ] **User Management** and authentication
 - [ ] **Package Analytics** and reporting
 - [ ] **Custom Themes** for merged packages
+- [ ] **Multi-language Support** for course descriptions
 
 ---
 
