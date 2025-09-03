@@ -296,6 +296,17 @@ body {
   font-weight: 500;
 }
 
+.package-description {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+  font-style: italic;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 0.75rem;
+}
+
 .package-details {
   display: flex;
   gap: 1rem;

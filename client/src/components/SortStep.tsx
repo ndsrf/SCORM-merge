@@ -62,6 +62,9 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, package: pkg, index }) 
           <span className="package-title">{pkg.title}</span>
           {pkg.error && <span className="error-badge">Error</span>}
         </div>
+        {pkg.description && (
+          <div className="package-description">{pkg.description}</div>
+        )}
         <div className="package-details">
           <span className="filename">{pkg.filename}</span>
           <span className="version">SCORM {pkg.version}</span>
@@ -189,6 +192,9 @@ const SortStep: React.FC<SortStepProps> = ({ packages, sessionId, onSortComplete
             {errorPackages.map((pkg, index) => (
               <div key={pkg.id} className="error-item">
                 <span className="package-title">{pkg.title}</span>
+                {pkg.description && (
+                  <div className="package-description">{pkg.description}</div>
+                )}
                 <span className="filename">{pkg.filename}</span>
                 <div className="error-message">{pkg.error}</div>
               </div>

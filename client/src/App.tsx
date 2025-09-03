@@ -8,6 +8,7 @@ export interface ScormPackage {
   id: string;
   filename: string;
   title: string;
+  description?: string;
   version: string;
   error?: string;
 }

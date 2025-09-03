@@ -436,4 +436,167 @@ describe('ScormProcessor', () => {
       await fs.unlink(testPackagePath2);
     }, 15000);
   });
+
+  describe('Friendly name generation', () => {
+    describe('generateFriendlyNameFromFilename', () => {
+      test('should convert hyphenated names to title case', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('my-course-module.zip'))
+          .toBe('My Course Module');
+      });
+
+      test('should convert underscored names to title case', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('lesson_01_intro.zip'))
+          .toBe('Lesson 01 Intro');
+      });
+
+      test('should handle camelCase names', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('CourseModule1.zip'))
+          .toBe('Course Module 1');
+      });
+
+      test('should handle mixed separators', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('course-module_part1.zip'))
+          .toBe('Course Module Part 1');
+      });
+
+      test('should handle numbers in filenames', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('module2_advanced_topics.zip'))
+          .toBe('Module 2 Advanced Topics');
+      });
+
+      test('should handle empty or invalid names', () => {
+        expect(scormProcessor.generateFriendlyNameFromFilename('.zip'))
+          .toBe('Untitled Course');
+        expect(scormProcessor.generateFriendlyNameFromFilename(''))
+          .toBe('Untitled Course');
+      });
+    });
+
+    describe('getDisplayTitle', () => {
+      test('should return original title when not "Untitled"', () => {
+        const pkg = { title: 'My Great Course', filename: 'bad-filename.zip' };
+        expect(scormProcessor.getDisplayTitle(pkg)).toBe('My Great Course');
+      });
+
+      test('should use friendly filename when title is "Untitled"', () => {
+        const pkg = { title: 'Untitled', filename: 'advanced-javascript-course.zip' };
+        expect(scormProcessor.getDisplayTitle(pkg)).toBe('Advanced Javascript Course');
+      });
+
+      test('should use friendly filename when title is "Untitled SCORM Package"', () => {
+        const pkg = { title: 'Untitled SCORM Package', filename: 'math_fundamentals_101.zip' };
+        expect(scormProcessor.getDisplayTitle(pkg)).toBe('Math Fundamentals 101');
+      });
+
+      test('should fall back to title when no filename available', () => {
+        const pkg = { title: 'Untitled' };
+        expect(scormProcessor.getDisplayTitle(pkg)).toBe('Untitled');
+      });
+    });
+  });
+
+  describe('Alphabetical sorting', () => {
+    test('should sort packages by display title alphabetically', () => {
+      const packages = [
+        { title: 'Zebra Course', filename: 'zebra.zip' },
+        { title: 'Apple Course', filename: 'apple.zip' },
+        { title: 'Untitled', filename: 'middle-course.zip' }, // Should become "Middle Course"
+        { title: 'Beta Course', filename: 'beta.zip' }
+      ];
+
+      // Sort using the same logic as the merge endpoint
+      packages.sort((a, b) => {
+        const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+        const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+
+      // Expected order: Apple Course, Beta Course, Middle Course, Zebra Course
+      expect(packages[0].title).toBe('Apple Course');
+      expect(packages[1].title).toBe('Beta Course');
+      expect(packages[2].title).toBe('Untitled'); // Original title preserved
+      expect(scormProcessor.getDisplayTitle(packages[2])).toBe('Middle Course'); // But display title is friendly
+      expect(packages[3].title).toBe('Zebra Course');
+    });
+
+    test('should handle case-insensitive sorting', () => {
+      const packages = [
+        { title: 'zebra course', filename: 'zebra.zip' },
+        { title: 'APPLE COURSE', filename: 'apple.zip' },
+        { title: 'Beta Course', filename: 'beta.zip' }
+      ];
+
+      packages.sort((a, b) => {
+        const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+        const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+
+      expect(packages[0].title).toBe('APPLE COURSE');
+      expect(packages[1].title).toBe('Beta Course');
+      expect(packages[2].title).toBe('zebra course');
+    });
+  });
+
+  describe('Description functionality', () => {
+    test('should extract existing descriptions from LOM metadata', () => {
+      const mockManifest = {
+        manifest: {
+          metadata: [{
+            lom: [{
+              general: [{
+                title: [{ string: [{ _: 'Test Course' }] }],
+                description: [{ string: [{ _: 'This is a test course description' }] }]
+              }]
+            }]
+          }]
+        }
+      };
+
+      const metadata = scormProcessor.extractMetadata(mockManifest);
+      expect(metadata.title).toBe('Test Course');
+      expect(metadata.description).toBe('This is a test course description');
+    });
+
+    test('should generate description for packages without existing description', async () => {
+      const packageData = {
+        title: 'JavaScript Fundamentals',
+        description: '', // No existing description
+        filename: 'javascript-course.zip',
+        contentSample: 'Learn JavaScript programming basics including variables, functions, and objects.'
+      };
+
+      const description = await scormProcessor.generateDescription(packageData);
+      
+      expect(description).toBeDefined();
+      expect(description.length).toBeGreaterThan(10);
+      expect(description.toLowerCase()).toContain('javascript');
+    });
+
+    test('should use existing description when available', async () => {
+      const packageData = {
+        title: 'Test Course',
+        description: 'This is an existing detailed description',
+        filename: 'test-course.zip',
+        contentSample: 'Some content sample'
+      };
+
+      const description = await scormProcessor.generateDescription(packageData);
+      expect(description).toBe('This is an existing detailed description');
+    });
+
+    test('should handle packages without content sample', async () => {
+      const packageData = {
+        title: 'Basic Course',
+        description: '',
+        filename: 'basic-course.zip',
+        contentSample: ''
+      };
+
+      const description = await scormProcessor.generateDescription(packageData);
+      
+      expect(description).toBeDefined();
+      expect(description.length).toBeGreaterThan(0);
+    });
+  });
 });

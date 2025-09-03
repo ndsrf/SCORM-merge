@@ -80,22 +80,46 @@ app.post('/api/upload', upload.array('scormPackages', 100), handleMulterError, a
     
     for (const file of req.files) {
       try {
-        const packageInfo = await scormProcessor.validateAndParsePackage(file.path);
-        packages.push({
+        const packageInfo = await scormProcessor.validateAndParsePackage(file.path, file.originalname);
+        const packageData = {
           id: Date.now() + Math.random(),
           filename: file.originalname,
           path: file.path,
           ...packageInfo
-        });
+        };
+        // Use friendly display title for frontend
+        packageData.title = scormProcessor.getDisplayTitle(packageData);
+        
+        // Generate description for tests (use fallback to avoid API calls)
+        try {
+          packageData.description = await scormProcessor.generateDescription(packageData);
+        } catch (error) {
+          console.error('Error generating description in test:', error);
+          packageData.description = 'SCORM learning module';
+        }
+        
+        packages.push(packageData);
       } catch (error) {
-        packages.push({
+        const errorPackage = {
           id: Date.now() + Math.random(),
           filename: file.originalname,
           path: file.path,
+          title: 'Untitled SCORM Package', // Default title for error cases
+          description: 'Error processing SCORM package',
           error: error.message
-        });
+        };
+        // Use friendly display title for frontend even in error cases
+        errorPackage.title = scormProcessor.getDisplayTitle(errorPackage);
+        packages.push(errorPackage);
       }
     }
+    
+    // Sort packages alphabetically by display title for consistent presentation
+    packages.sort((a, b) => {
+      const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+      const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+      return titleA.localeCompare(titleB);
+    });
     
     session.packages = packages;
     res.json({ packages });
@@ -145,6 +169,13 @@ app.post('/api/merge', async (req, res) => {
     if (validPackages.length === 0) {
       return res.status(400).json({ error: 'No valid SCORM packages to merge' });
     }
+
+    // Sort packages alphabetically by title (using display title which includes friendly names)
+    validPackages.sort((a, b) => {
+      const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+      const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+      return titleA.localeCompare(titleB);
+    });
 
     const mergedPackagePath = await scormProcessor.mergePackages(validPackages);
     res.json({ downloadUrl: `/api/download/${path.basename(mergedPackagePath)}` });
@@ -290,6 +321,144 @@ describe('API Endpoints', () => {
       expect(response.body.packages[0].filename).toBe('package1.zip');
       expect(response.body.packages[1].filename).toBe('package2.zip');
     });
+
+    test('should use friendly names for packages with no metadata title', async () => {
+      // Create a SCORM package without LOM title metadata - will default to "Untitled SCORM Package"
+      const zip = new JSZip();
+      const untitledManifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="untitled-package" version="1.3"
+          xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+          xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 3rd Edition</schemaversion>
+  </metadata>
+  <organizations default="test-org">
+    <organization identifier="test-org">
+      <title>Untitled Organization</title>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="test-resource" href="index.html">
+      <file href="index.html" />
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.file('imsmanifest.xml', untitledManifest);
+      zip.file('index.html', '<html><body><h1>Test</h1></body></html>');
+
+      const untitledPackage = await zip.generateAsync({ type: 'nodebuffer' });
+
+      const response = await request(app)
+        .post('/api/upload')
+        .field('sessionId', testSessionId)
+        .attach('scormPackages', untitledPackage, 'advanced-javascript-course.zip')
+        .expect(200);
+
+      expect(response.body.packages).toHaveLength(1);
+      const pkg = response.body.packages[0];
+      
+      // Should use friendly filename instead of generic titles
+      expect(pkg.title).toBe('Advanced Javascript Course');
+      expect(pkg.filename).toBe('advanced-javascript-course.zip');
+    });
+
+    test('should return packages with descriptions', async () => {
+      const response = await request(app)
+        .post('/api/upload')
+        .field('sessionId', testSessionId)
+        .attach('scormPackages', testScormPackage, 'test-package.zip')
+        .expect(200);
+
+      expect(response.body.packages).toHaveLength(1);
+      const pkg = response.body.packages[0];
+      
+      // Should include description field
+      expect(pkg).toHaveProperty('description');
+      expect(typeof pkg.description).toBe('string');
+      expect(pkg.description.length).toBeGreaterThan(0);
+    });
+
+    test('should return packages in alphabetical order by title', async () => {
+      // Upload packages with titles that are NOT in alphabetical order
+      const sessionId = 'alphabetical-test-' + Date.now();
+      
+      // Create packages: Zebra, Apple, Middle (uploaded in non-alphabetical order)
+      const zebraPackage = new JSZip();
+      const zebraManifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="zebra-pkg" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata>
+    <lom xmlns="http://ltsc.ieee.org/xsd/LOM">
+      <general>
+        <title><string language="en">Zebra Course</string></title>
+      </general>
+    </lom>
+  </metadata>
+  <organizations default="zebra-org">
+    <organization identifier="zebra-org">
+      <title>Zebra Course</title>
+    </organization>
+  </organizations>
+  <resources><resource identifier="zebra-res" href="zebra.html"><file href="zebra.html"/></resource></resources>
+</manifest>`;
+      zebraPackage.file('imsmanifest.xml', zebraManifest);
+      zebraPackage.file('zebra.html', '<html><body>Zebra</body></html>');
+      const zebraBuffer = await zebraPackage.generateAsync({ type: 'nodebuffer' });
+
+      const applePackage = new JSZip();
+      const appleManifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="apple-pkg" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata>
+    <lom xmlns="http://ltsc.ieee.org/xsd/LOM">
+      <general>
+        <title><string language="en">Apple Course</string></title>
+      </general>
+    </lom>
+  </metadata>
+  <organizations default="apple-org">
+    <organization identifier="apple-org">
+      <title>Apple Course</title>
+    </organization>
+  </organizations>
+  <resources><resource identifier="apple-res" href="apple.html"><file href="apple.html"/></resource></resources>
+</manifest>`;
+      applePackage.file('imsmanifest.xml', appleManifest);
+      applePackage.file('apple.html', '<html><body>Apple</body></html>');
+      const appleBuffer = await applePackage.generateAsync({ type: 'nodebuffer' });
+
+      // Third package uses filename for friendly name (Untitled -> "Middle Course")
+      const middlePackage = new JSZip();
+      const middleManifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="middle-pkg" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata/>
+  <organizations default="middle-org">
+    <organization identifier="middle-org">
+      <title>Untitled</title>
+    </organization>
+  </organizations>
+  <resources><resource identifier="middle-res" href="middle.html"><file href="middle.html"/></resource></resources>
+</manifest>`;
+      middlePackage.file('imsmanifest.xml', middleManifest);
+      middlePackage.file('middle.html', '<html><body>Middle</body></html>');
+      const middleBuffer = await middlePackage.generateAsync({ type: 'nodebuffer' });
+
+      // Upload in wrong order: Zebra first, Apple second, Middle third
+      const response = await request(app)
+        .post('/api/upload')
+        .field('sessionId', sessionId)
+        .attach('scormPackages', zebraBuffer, 'zebra-course.zip')
+        .attach('scormPackages', appleBuffer, 'apple-course.zip')
+        .attach('scormPackages', middleBuffer, 'middle-course.zip')
+        .expect(200);
+
+      expect(response.body.packages).toHaveLength(3);
+      
+      // Should be returned in alphabetical order: Apple, Middle Course, Zebra
+      expect(response.body.packages[0].title).toBe('Apple Course');
+      expect(response.body.packages[1].title).toBe('Middle Course'); // Friendly name from filename
+      expect(response.body.packages[2].title).toBe('Zebra Course');
+    });
   });
 
   describe('POST /api/reorder', () => {
@@ -383,6 +552,148 @@ describe('API Endpoints', () => {
 
       expect(response.body).toHaveProperty('error', 'No valid SCORM packages to merge');
     });
+
+    test('should merge packages in alphabetical order by title', async () => {
+      // Create multiple test packages with different titles  
+      const sessionId = 'test-alphabetical-' + Date.now();
+      
+      // Package 1: "Zebra Course" (will be last alphabetically)
+      const package1 = new JSZip();
+      const manifest1 = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="zebra-package" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 3rd Edition</schemaversion>
+    <lom xmlns="http://ltsc.ieee.org/xsd/LOM">
+      <general>
+        <title>
+          <string language="en">Zebra Course</string>
+        </title>
+      </general>
+    </lom>
+  </metadata>
+  <organizations default="zebra-org">
+    <organization identifier="zebra-org">
+      <title>Zebra Course</title>
+      <item identifier="zebra-item" identifierref="zebra-resource">
+        <title>Zebra Item</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="zebra-resource" href="zebra.html">
+      <file href="zebra.html" />
+    </resource>
+  </resources>
+</manifest>`;
+      package1.file('imsmanifest.xml', manifest1);
+      package1.file('zebra.html', '<html><body>Zebra</body></html>');
+      const package1Buffer = await package1.generateAsync({ type: 'nodebuffer' });
+
+      // Package 2: "Apple Course" (will be first alphabetically)
+      const package2 = new JSZip();
+      const manifest2 = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="apple-package" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 3rd Edition</schemaversion>
+    <lom xmlns="http://ltsc.ieee.org/xsd/LOM">
+      <general>
+        <title>
+          <string language="en">Apple Course</string>
+        </title>
+      </general>
+    </lom>
+  </metadata>
+  <organizations default="apple-org">
+    <organization identifier="apple-org">
+      <title>Apple Course</title>
+      <item identifier="apple-item" identifierref="apple-resource">
+        <title>Apple Item</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="apple-resource" href="apple.html">
+      <file href="apple.html" />
+    </resource>
+  </resources>
+</manifest>`;
+      package2.file('imsmanifest.xml', manifest2);
+      package2.file('apple.html', '<html><body>Apple</body></html>');
+      const package2Buffer = await package2.generateAsync({ type: 'nodebuffer' });
+
+      // Package 3: Uses filename for friendly name - will be middle
+      const package3 = new JSZip();
+      const manifest3 = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="middle-package" version="1.3" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 3rd Edition</schemaversion>
+  </metadata>
+  <organizations default="middle-org">
+    <organization identifier="middle-org">
+      <title>Untitled</title>
+      <item identifier="middle-item" identifierref="middle-resource">
+        <title>Middle Item</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="middle-resource" href="middle.html">
+      <file href="middle.html" />
+    </resource>
+  </resources>
+</manifest>`;
+      package3.file('imsmanifest.xml', manifest3);
+      package3.file('middle.html', '<html><body>Middle</body></html>');
+      const package3Buffer = await package3.generateAsync({ type: 'nodebuffer' });
+
+      // Upload packages in wrong order (Zebra first, Apple second, Middle third)
+      await request(app)
+        .post('/api/upload')
+        .field('sessionId', sessionId)
+        .attach('scormPackages', package1Buffer, 'zebra-course.zip')
+        .attach('scormPackages', package2Buffer, 'apple-course.zip')
+        .attach('scormPackages', package3Buffer, 'middle-course.zip')
+        .expect(200);
+
+      // Merge packages
+      const mergeResponse = await request(app)
+        .post('/api/merge')
+        .send({ sessionId })
+        .expect(200);
+
+      expect(mergeResponse.body).toHaveProperty('downloadUrl');
+
+      // Verify the merged manifest has packages in alphabetical order
+      const downloadUrl = mergeResponse.body.downloadUrl;
+      const filename = downloadUrl.split('/').pop();
+      const mergedPath = path.join(__dirname, '../temp', filename);
+      
+      // Read the merged ZIP and check manifest
+      const mergedData = await fs.readFile(mergedPath);
+      const mergedZip = new JSZip();
+      const zipContents = await mergedZip.loadAsync(mergedData);
+      const manifestFile = zipContents.file('imsmanifest.xml');
+      const manifestXml = await manifestFile.async('string');
+
+      // Check that packages appear in alphabetical order: Apple, Middle Course, Zebra
+      const appleIndex = manifestXml.indexOf('Apple Course');
+      const middleIndex = manifestXml.indexOf('Middle Course');
+      const zebraIndex = manifestXml.indexOf('Zebra Course');
+
+      expect(appleIndex).toBeGreaterThan(0);
+      expect(middleIndex).toBeGreaterThan(0);
+      expect(zebraIndex).toBeGreaterThan(0);
+
+      // Verify alphabetical order
+      expect(appleIndex).toBeLessThan(middleIndex);
+      expect(middleIndex).toBeLessThan(zebraIndex);
+
+      // Cleanup
+      await fs.unlink(mergedPath);
+    }, 15000);
   });
 
   describe('Error Handling', () => {

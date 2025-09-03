@@ -104,23 +104,48 @@ app.post('/api/upload', upload.array('scormPackages', 100), handleMulterError, a
     for (const file of req.files) {
       try {
         console.log('Processing file:', file.originalname);
-        const packageInfo = await scormProcessor.validateAndParsePackage(file.path);
-        packages.push({
+        const packageInfo = await scormProcessor.validateAndParsePackage(file.path, file.originalname);
+        const packageData = {
           id: Date.now() + Math.random(),
           filename: file.originalname,
           path: file.path,
           ...packageInfo
-        });
+        };
+        // Use friendly display title for frontend
+        packageData.title = scormProcessor.getDisplayTitle(packageData);
+        
+        // Generate description synchronously
+        try {
+          packageData.description = await scormProcessor.generateDescription(packageData);
+          console.log(`Generated description for ${packageData.title}: ${packageData.description.substring(0, 50)}...`);
+        } catch (error) {
+          console.error('Error generating description:', error);
+          packageData.description = 'SCORM learning module';
+        }
+        
+        packages.push(packageData);
       } catch (error) {
         console.error('Error processing file:', file.originalname, error.message);
-        packages.push({
+        const errorPackage = {
           id: Date.now() + Math.random(),
           filename: file.originalname,
           path: file.path,
+          title: 'Untitled SCORM Package', // Default title for error cases
+          description: 'Error processing SCORM package',
           error: error.message
-        });
+        };
+        // Use friendly display title for frontend even in error cases
+        errorPackage.title = scormProcessor.getDisplayTitle(errorPackage);
+        packages.push(errorPackage);
       }
     }
+    
+    // Sort packages alphabetically by display title for consistent presentation
+    packages.sort((a, b) => {
+      const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+      const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+      return titleA.localeCompare(titleB);
+    });
     
     session.packages = packages;
     console.log('Upload successful, returning packages:', packages.length);
@@ -203,6 +228,13 @@ app.post('/api/merge', async (req, res) => {
       console.error('No valid packages to merge. Total packages:', session.packages?.length || 0);
       return res.status(400).json({ error: 'No valid SCORM packages to merge' });
     }
+
+    // Sort packages alphabetically by title (using display title which includes friendly names)
+    validPackages.sort((a, b) => {
+      const titleA = scormProcessor.getDisplayTitle(a).toLowerCase();
+      const titleB = scormProcessor.getDisplayTitle(b).toLowerCase();
+      return titleA.localeCompare(titleB);
+    });
 
     const mergedPackagePath = await scormProcessor.mergePackages(
       validPackages,
