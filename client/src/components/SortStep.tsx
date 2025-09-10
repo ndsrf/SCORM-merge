@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -18,13 +18,17 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ScormPackage } from '../App';
+import { ScormPackage, DescriptionProgress } from '../App';
 
 interface SortStepProps {
   packages: ScormPackage[];
   sessionId: string;
   onSortComplete: (packages: ScormPackage[]) => void;
   onBack: () => void;
+  descriptionProgress?: DescriptionProgress | null;
+  descriptionTaskId?: string | null;
+  onStartDescriptionGeneration: () => void;
+  onCancelDescriptionGeneration: () => void;
 }
 
 interface SortableItemProps {
@@ -77,9 +81,23 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, package: pkg, index }) 
   );
 };
 
-const SortStep: React.FC<SortStepProps> = ({ packages, sessionId, onSortComplete, onBack }) => {
+const SortStep: React.FC<SortStepProps> = ({ 
+  packages, 
+  sessionId, 
+  onSortComplete, 
+  onBack,
+  descriptionProgress,
+  descriptionTaskId,
+  onStartDescriptionGeneration,
+  onCancelDescriptionGeneration
+}) => {
   const [sortedPackages, setSortedPackages] = useState(packages);
   const [saving, setSaving] = useState(false);
+
+  // Sync with parent state changes (for real-time description updates)
+  useEffect(() => {
+    setSortedPackages(packages);
+  }, [packages]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -154,6 +172,146 @@ const SortStep: React.FC<SortStepProps> = ({ packages, sessionId, onSortComplete
       {process.env.NODE_ENV === 'development' && (
         <div style={{padding: '10px', background: '#f0f0f0', marginBottom: '10px', fontSize: '12px'}}>
           Debug: Session ID = "{sessionId}" | Total Packages = {sortedPackages.length} | Valid = {validPackages.length}
+        </div>
+      )}
+      
+      {/* Description Generation Controls */}
+      {validPackages.length > 0 && (
+        <div className="description-controls" style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef'}}>
+          <h3 style={{margin: '0 0 10px 0', fontSize: '16px', color: '#495057'}}>AI Description Generation</h3>
+          <p style={{margin: '0 0 15px 0', fontSize: '14px', color: '#6c757d'}}>
+            Generate intelligent descriptions for your SCORM packages using AI. You can start this process and continue with sorting while descriptions are generated in the background.
+          </p>
+          <p style={{margin: '0 0 15px 0', fontSize: '13px', color: '#6c757d', fontStyle: 'italic'}}>
+            💡 You can proceed to the next step at any time, even while descriptions are being generated. The process will continue in the background.
+          </p>
+        
+        {!descriptionTaskId && (
+          <button 
+            onClick={() => {
+              console.log('Generate AI Descriptions button clicked');
+              onStartDescriptionGeneration();
+            }}
+            className="btn btn-primary"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Generate AI Descriptions
+          </button>
+        )}
+        
+        {descriptionTaskId && (
+          <div>
+            <button 
+              onClick={onCancelDescriptionGeneration}
+              className="btn btn-secondary"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                marginRight: '10px'
+              }}
+            >
+              Cancel Generation
+            </button>
+            <button 
+              onClick={async () => {
+                console.log('Manual status check...');
+                try {
+                  const response = await fetch(`/api/descriptions/status/${sessionId}`);
+                  const data = await response.json();
+                  console.log('Manual status check result:', data);
+                } catch (error) {
+                  console.error('Manual status check error:', error);
+                }
+              }}
+              className="btn btn-info"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                marginRight: '10px'
+              }}
+            >
+              Check Status
+            </button>
+            <button 
+              onClick={async () => {
+                console.log('Manual fetch results...');
+                try {
+                  const response = await fetch(`/api/descriptions/results/${sessionId}`);
+                  const data = await response.json();
+                  console.log('Manual results:', data);
+                  if (data.results) {
+                    // Apply results manually
+                    window.location.reload(); // Simple way to refresh the page with new data
+                  }
+                } catch (error) {
+                  console.error('Manual fetch results error:', error);
+                }
+              }}
+              className="btn btn-success"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                marginRight: '10px'
+              }}
+            >
+              Fetch Results
+            </button>
+            <span style={{fontSize: '14px', color: '#495057'}}>
+              Generating descriptions in background...
+            </span>
+          </div>
+        )}
+        
+        {descriptionProgress && (
+          <div style={{marginTop: '15px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+              <span style={{fontSize: '14px', color: '#495057'}}>{descriptionProgress.message}</span>
+              <span style={{fontSize: '14px', color: '#495057'}}>{descriptionProgress.progress}%</span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '8px',
+              backgroundColor: '#e9ecef',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${descriptionProgress.progress}%`,
+                height: '100%',
+                backgroundColor: descriptionProgress.type === 'completed' ? '#28a745' : '#007bff',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+            {descriptionProgress.total && (
+              <div style={{fontSize: '12px', color: '#6c757d', marginTop: '5px'}}>
+                {descriptionProgress.current || 0} of {descriptionProgress.total} packages processed
+              </div>
+            )}
+          </div>
+        )}
         </div>
       )}
       

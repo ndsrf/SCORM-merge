@@ -46,6 +46,8 @@ jest.mock('@dnd-kit/utilities', () => ({
 
 const mockOnSortComplete = jest.fn();
 const mockOnBack = jest.fn();
+const mockOnStartDescriptionGeneration = jest.fn();
+const mockOnCancelDescriptionGeneration = jest.fn();
 
 const validPackages: ScormPackage[] = [
   {
@@ -77,13 +79,19 @@ const defaultProps = {
   packages: validPackages,
   sessionId: 'test-session-123',
   onSortComplete: mockOnSortComplete,
-  onBack: mockOnBack
+  onBack: mockOnBack,
+  onStartDescriptionGeneration: mockOnStartDescriptionGeneration,
+  onCancelDescriptionGeneration: mockOnCancelDescriptionGeneration
 };
 
 describe('SortStep', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (fetch as jest.Mock).mockClear();
+    mockOnSortComplete.mockClear();
+    mockOnBack.mockClear();
+    mockOnStartDescriptionGeneration.mockClear();
+    mockOnCancelDescriptionGeneration.mockClear();
   });
 
   test('renders sort step with correct title and description', () => {

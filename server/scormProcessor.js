@@ -314,6 +314,23 @@ class ScormProcessor {
       return openaiService.getFallbackDescription(courseData);
     }
   }
+
+  /**
+   * Get fallback description for a package (synchronous)
+   */
+  getFallbackDescription(packageData) {
+    const openaiService = require('./openaiService');
+    
+    // Prepare data for fallback description
+    const courseData = {
+      title: this.getDisplayTitle(packageData),
+      filename: packageData.filename,
+      contentSample: packageData.contentSample || '',
+      existingDescription: packageData.description || ''
+    };
+    
+    return openaiService.getFallbackDescription(courseData);
+  }
   
   extractOrganizations(manifest) {
     const organizations = manifest?.manifest?.organizations?.[0];
@@ -377,7 +394,8 @@ class ScormProcessor {
       const zipContents = await zip.loadAsync(zipData);
       
       for (const [filename, file] of Object.entries(zipContents.files)) {
-        if (filename !== 'imsmanifest.xml' && !file.dir) {
+        if (filename !== 'imsmanifest.xml' && !file.dir && 
+            !filename.toLowerCase().endsWith('.xsd')) {
           let content = await file.async('nodebuffer');
           
           // Inject finish handler script into HTML files
@@ -474,13 +492,22 @@ class ScormProcessor {
         <resource identifier="resource_${packageId}" type="webcontent" adlcp:scormType="sco" href="${packageFolder}/${mainHref}">
           <file href="${packageFolder}/${mainHref}" />`;
       
-      // Add all files from the package
+      // Add all files from the package (avoid duplicates and schema files)
+      const addedFiles = new Set([`${packageFolder}/${mainHref}`]);
       if (pkg.resources) {
         for (const resource of pkg.resources) {
           if (resource.files) {
             for (const file of resource.files) {
-              resources += `
-          <file href="${packageFolder}/${file}" />`;
+              // Skip schema files and the manifest itself
+              if (file.toLowerCase().endsWith('.xsd') || file.toLowerCase() === 'imsmanifest.xml') {
+                continue;
+              }
+              const fullPath = `${packageFolder}/${file}`;
+              if (!addedFiles.has(fullPath)) {
+                addedFiles.add(fullPath);
+                resources += `
+          <file href="${fullPath}" />`;
+              }
             }
           }
         }
@@ -494,18 +521,23 @@ class ScormProcessor {
 <manifest identifier="${manifestId}" version="1.3" 
           xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" 
           xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" 
+          xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" 
+          xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-          xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd">
+          xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd http://www.adlnet.org/xsd/adlcp_v1p3 http://www.adlnet.org/xsd/adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 http://www.adlnet.org/xsd/adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 http://www.adlnet.org/xsd/adlnav_v1p3.xsd">
   <metadata>
     <schema>ADL SCORM</schema>
     <schemaversion>2004 3rd Edition</schemaversion>
-    <lom:lom xmlns:lom="http://ltsc.ieee.org/xsd/LOM">
-      <lom:general>
-        <lom:title>
-          <lom:string language="en">Merged SCORM Package</lom:string>
-        </lom:title>
-      </lom:general>
-    </lom:lom>
+    <lom xmlns="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ltsc.ieee.org/xsd/LOM http://ltsc.ieee.org/xsd/lomv1.0/lomLoose.xsd">
+      <general>
+        <title>
+          <string language="en">Merged SCORM Package</string>
+        </title>
+        <description>
+          <string language="en">A merged SCORM package containing multiple learning modules</string>
+        </description>
+      </general>
+    </lom>
   </metadata>
   <organizations default="${organizationId}">
     <organization identifier="${organizationId}">

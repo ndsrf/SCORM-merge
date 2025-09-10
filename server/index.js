@@ -6,6 +6,7 @@ const fs = require('fs').promises;
 const WebSocket = require('ws');
 const http = require('http');
 const scormProcessor = require('./scormProcessor');
+const descriptionTaskManager = require('./descriptionTaskManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -58,6 +59,7 @@ wss.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'session', sessionId }));
   
   ws.on('close', () => {
+    console.log('WebSocket closed for session:', sessionId);
     sessions.delete(sessionId);
   });
 });
@@ -92,6 +94,9 @@ app.post('/api/upload', upload.array('scormPackages', 100), handleMulterError, a
       console.log('Session not found, creating new session for:', sessionId);
       session = { packages: [] };
       sessions.set(sessionId, session);
+    } else {
+      // Preserve existing WebSocket connection if it exists
+      console.log('Session found, preserving WebSocket connection');
     }
 
     if (!req.files || req.files.length === 0) {
@@ -114,14 +119,9 @@ app.post('/api/upload', upload.array('scormPackages', 100), handleMulterError, a
         // Use friendly display title for frontend
         packageData.title = scormProcessor.getDisplayTitle(packageData);
         
-        // Generate description synchronously
-        try {
-          packageData.description = await scormProcessor.generateDescription(packageData);
-          console.log(`Generated description for ${packageData.title}: ${packageData.description.substring(0, 50)}...`);
-        } catch (error) {
-          console.error('Error generating description:', error);
-          packageData.description = 'SCORM learning module';
-        }
+        // Use fallback description initially - AI descriptions will be generated in background
+        packageData.description = scormProcessor.getFallbackDescription(packageData);
+        console.log(`Using fallback description for ${packageData.title}: ${packageData.description.substring(0, 50)}...`);
         
         packages.push(packageData);
       } catch (error) {
@@ -252,6 +252,139 @@ app.post('/api/merge', async (req, res) => {
     res.json({ downloadUrl: `/api/download/${path.basename(mergedPackagePath)}` });
   } catch (error) {
     console.error('Merge process error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Description generation endpoints
+app.post('/api/descriptions/start', async (req, res) => {
+  try {
+    console.log('Description generation start request received:', req.body);
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      console.log('No session ID provided');
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+    
+    let session = sessions.get(sessionId);
+    console.log('Session found:', !!session);
+    console.log('Session has WebSocket:', session ? !!session.ws : 'no session');
+    console.log('WebSocket state:', session && session.ws ? session.ws.readyState : 'no ws');
+    if (!session) {
+      console.log('Session not found for ID:', sessionId);
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    const validPackages = session.packages.filter(pkg => !pkg.error);
+    console.log('Valid packages count:', validPackages.length);
+    if (validPackages.length === 0) {
+      console.log('No valid packages found');
+      return res.status(400).json({ error: 'No valid packages to generate descriptions for' });
+    }
+    
+    // Start background description generation
+    const taskId = await descriptionTaskManager.startDescriptionGeneration(
+      sessionId,
+      validPackages,
+      (progress) => {
+        // Send progress updates via WebSocket
+        console.log('Sending progress update:', progress);
+        console.log('Session has WebSocket:', !!session.ws);
+        console.log('WebSocket state:', session.ws ? session.ws.readyState : 'no ws');
+        if (session.ws && session.ws.readyState === WebSocket.OPEN) {
+          console.log('Sending progress via WebSocket');
+          session.ws.send(JSON.stringify({ 
+            type: 'description_progress', 
+            progress 
+          }));
+        } else {
+          console.log('Cannot send progress - WebSocket not available or not open');
+        }
+      },
+      (update) => {
+        // Send individual description updates via WebSocket
+        console.log('Sending description update:', update);
+        console.log('Session has WebSocket:', !!session.ws);
+        console.log('WebSocket state:', session.ws ? session.ws.readyState : 'no ws');
+        if (session.ws && session.ws.readyState === WebSocket.OPEN) {
+          console.log('Sending description update via WebSocket');
+          session.ws.send(JSON.stringify(update));
+        } else {
+          console.log('Cannot send description update - WebSocket not available or not open');
+        }
+      }
+    );
+    
+    res.json({ 
+      success: true, 
+      taskId,
+      message: `Started generating descriptions for ${validPackages.length} packages`
+    });
+    
+  } catch (error) {
+    console.error('Error starting description generation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/descriptions/cancel', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+    
+    const cancelled = await descriptionTaskManager.cancelTask(sessionId);
+    
+    if (cancelled) {
+      res.json({ 
+        success: true, 
+        message: 'Description generation cancelled' 
+      });
+    } else {
+      res.status(404).json({ 
+        error: 'No active description generation task found' 
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error cancelling description generation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/descriptions/status/:sessionId', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const status = descriptionTaskManager.getTaskStatus(sessionId);
+    const results = descriptionTaskManager.getTaskResults(sessionId);
+    
+    res.json({ 
+      status,
+      results,
+      hasResults: Object.keys(results).length > 0
+    });
+    
+  } catch (error) {
+    console.error('Error getting description status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/descriptions/results/:sessionId', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const results = descriptionTaskManager.getTaskResults(sessionId);
+    
+    res.json({ 
+      results,
+      count: Object.keys(results).length
+    });
+    
+  } catch (error) {
+    console.error('Error getting description results:', error);
     res.status(500).json({ error: error.message });
   }
 });
